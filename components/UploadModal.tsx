@@ -8,12 +8,18 @@ import toast from "react-hot-toast";
 import { useUser } from "@/hooks/useUser";
 import uniqid from 'uniqid'
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useRouter } from "next/navigation";
+
+
+
 const UploadModal = () => {
   const [isLoading, setisLoading] = useState(false)
   const uploadModal = useUploadModal();
 
   const {user} = useUser()
   const supabaseClient = useSupabaseClient()
+
+  const router = useRouter()
 
   const { register, handleSubmit, reset } = useForm<FieldValues>({
     defaultValues: {
@@ -38,7 +44,10 @@ const UploadModal = () => {
       const imageFile = values.image?.[0];
       const songFile = values.song?.[0];
       
+      
+
       if (!imageFile || !songFile || !user) {
+           console.log(`imagefile:${imageFile}`, `songFile:${songFile}`, `user:${user}`);
            toast.error("Missing fields!")
            return;
        }
@@ -65,6 +74,18 @@ const UploadModal = () => {
           return toast.error('Failed Image Upload.')
        }
        
+       const {error: supabaseError} = await supabaseClient.from('songs').insert({user_id: user.id, title:values.title, author: values.author, image_path:imageData.path, song_path: songData.path})
+
+       if (supabaseError) {
+           setisLoading(false);
+           return toast.error(supabaseError.message)
+       }
+       router.refresh();
+       setisLoading(false);
+       toast.success('Song Created!');
+       reset();
+       uploadModal.onClose()
+
     } catch (error) {
       toast.error('smoething gone wrong!')
     } finally{
